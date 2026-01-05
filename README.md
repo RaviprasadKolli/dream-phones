@@ -1,3 +1,38 @@
+# 📱 Dream Phones
+
+Dream Phones is a modern web application built with **Next.js** that showcases mobile phones with a clean UI and smooth user experience.
+
+This project is focused on learning and implementing modern frontend practices using React and Next.js.
+
+---
+
+## 🚀 Tech Stack
+
+- **Next.js** – React framework for production
+- **React.js** – Component-based UI
+- **Tailwind CSS** – Utility-first CSS framework
+- **TypeScript** – Type-safe JavaScript
+- **Node.js** – Runtime environment
+
+---
+
+## 📂 Project Structure
+
+```bash
+dream-phones/
+├── src/
+│   ├── app/
+│   ├── components/
+│   ├── styles/
+│   └── utils/
+├── public/
+├── package.json
+├── next.config.ts
+└── README.md
+
+
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
