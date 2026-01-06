@@ -2,20 +2,24 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface CartItem {
+  id: string;
   productId: string;
   name: string;
+  slug: string;
   price: number;
-  quantity: number;
   image: string;
+  quantity: number;
+  maxQuantity: number;
 }
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: CartItem) => void;
+  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  getTotal: () => number;
+  getTotalItems: () => number;
+  getTotalPrice: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -25,46 +29,75 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         const items = get().items;
-        const existing = items.find((i) => i.productId === item.productId);
+        const existingItem = items.find((i) => i.productId === item.productId);
 
-        if (existing) {
+        if (existingItem) {
+          // Update quantity if item exists
           set({
             items: items.map((i) =>
               i.productId === item.productId
-                ? { ...i, quantity: i.quantity + item.quantity }
+                ? {
+                    ...i,
+                    quantity: Math.min(
+                      i.quantity + (item.quantity || 1),
+                      i.maxQuantity
+                    ),
+                  }
                 : i
             ),
           });
         } else {
-          set({ items: [...items, item] });
+          // Add new item
+          set({
+            items: [
+              ...items,
+              {
+                ...item,
+                quantity: item.quantity || 1,
+              },
+            ],
+          });
         }
       },
 
       removeItem: (productId) => {
-        set({ items: get().items.filter((i) => i.productId !== productId) });
+        set({
+          items: get().items.filter((i) => i.productId !== productId),
+        });
       },
 
       updateQuantity: (productId, quantity) => {
         if (quantity <= 0) {
           get().removeItem(productId);
-        } else {
-          set({
-            items: get().items.map((i) =>
-              i.productId === productId ? { ...i, quantity } : i
-            ),
-          });
+          return;
         }
+
+        set({
+          items: get().items.map((i) =>
+            i.productId === productId
+              ? { ...i, quantity: Math.min(quantity, i.maxQuantity) }
+              : i
+          ),
+        });
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => {
+        set({ items: [] });
+      },
 
-      getTotal: () => {
+      getTotalItems: () => {
+        return get().items.reduce((total, item) => total + item.quantity, 0);
+      },
+
+      getTotalPrice: () => {
         return get().items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
+          (total, item) => total + item.price * item.quantity,
           0
         );
       },
     }),
-    { name: "cart-storage" }
+    {
+      name: "cart-storage",
+    }
   )
 );

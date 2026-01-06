@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Wrench, Shield, Truck } from "lucide-react";
+import { CartButton } from "@/components/layout/cart-button";
 
 export default function HomePage() {
   return (
@@ -35,6 +36,7 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-4">
+            <CartButton />
             <Link href="/login">
               <Button variant="ghost">Login</Button>
             </Link>

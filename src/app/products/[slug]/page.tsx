@@ -7,6 +7,7 @@ import { ImageGallery } from "@/components/products/image-gallery";
 import { ProductCard } from "@/components/products/product-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useCartStore } from "@/stores/cart-store";
 import {
   ShoppingCart,
   Heart,
@@ -55,7 +56,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     fetchProduct();
-  }, [params.slug]);
+  }, [params.slug]); // Changed from searchParams to params.slug
 
   const fetchProduct = async () => {
     setLoading(true);
@@ -89,9 +90,22 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
+    if (!product) return;
+
+    useCartStore.getState().addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      image: product.images[0] || "",
+      maxQuantity: product.quantity,
+      quantity: selectedQuantity,
+    });
+
     toast({
       title: "Added to cart! 🎉",
-      description: `${product?.name} (${selectedQuantity}x) added to your cart`,
+      description: `${product.name} (${selectedQuantity}x) added to your cart`,
     });
   };
 
