@@ -179,7 +179,7 @@ model Product {
   compareAtPrice  Float?
   costPrice       Float?
   
-  sku             String    @unique
+  sku             String?    @unique  // Added ? to make it optional
   barcode         String?
   quantity        Int       @default(0)
   lowStockAlert   Int       @default(5)
