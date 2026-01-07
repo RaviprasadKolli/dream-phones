@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCartStore } from "@/stores/cart-store";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductCardProps {
   product: {
@@ -25,6 +27,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const addToCart = useCartStore((state) => state.addItem);
+  const { toast } = useToast();
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -41,6 +46,24 @@ export function ProductCard({ product }: ProductCardProps) {
     : 0;
 
   const isOutOfStock = product.quantity === 0;
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price,
+      image: product.images[0] || "",
+      maxQuantity: product.quantity,
+      quantity: 1,
+    });
+
+    toast({
+      title: "Added to cart! 🎉",
+      description: `${product.name} added to your cart`,
+    });
+  };
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-lg border bg-white shadow-sm transition-all hover:shadow-lg">
@@ -116,7 +139,15 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Add to Cart Button */}
-          <Button className="mt-3 w-full" size="sm" disabled={isOutOfStock}>
+          <Button
+            className="mt-3 w-full"
+            size="sm"
+            disabled={isOutOfStock}
+            onClick={(e) => {
+              e.preventDefault();
+              handleAddToCart();
+            }}
+          >
             <ShoppingCart className="mr-2 h-4 w-4" />
             {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </Button>

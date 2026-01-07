@@ -1,22 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingBag } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -24,6 +22,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Error",
@@ -33,7 +32,17 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
+    // Validate password length
+    if (formData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -42,7 +51,6 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          phone: formData.phone,
           password: formData.password,
         }),
       });
@@ -50,129 +58,168 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(data.error || "Registration failed");
       }
 
       toast({
         title: "Success! 🎉",
-        description: "Account created! Check your email for welcome message.",
+        description: "Account created successfully. Please sign in.",
       });
 
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+      router.push("/login");
     } catch (error: any) {
+      console.error("Registration error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <ShoppingBag className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">Dream Phones</span>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <Link
+            href="/"
+            className="mb-6 inline-flex items-center gap-2 text-2xl font-bold text-purple-600"
+          >
+            <span className="text-3xl">📱</span>
+            <span>Dream Phones</span>
           </Link>
-          <h2 className="mt-6 text-3xl font-bold">Create an account</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Join us and start shopping today
-          </p>
+          <h1 className="mt-4 text-3xl font-bold text-gray-900">
+            Create account
+          </h1>
+          <p className="mt-2 text-gray-600">Join us today</p>
         </div>
 
+        {/* Register Form */}
         <div className="rounded-lg border bg-white p-8 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Full Name
+              </label>
               <Input
-                id="name"
                 type="text"
-                placeholder="John Doe"
+                name="name"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={handleChange}
+                placeholder="John Doe"
                 required
+                disabled={loading}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            {/* Email */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Email
+              </label>
               <Input
-                id="email"
                 type="email"
-                placeholder="you@example.com"
+                name="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
+                onChange={handleChange}
+                placeholder="your@email.com"
                 required
+                disabled={loading}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+            {/* Password */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Password
+              </label>
               <Input
-                id="phone"
-                type="tel"
-                placeholder="+91 9876543210"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
                 type="password"
+                name="password"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
+                onChange={handleChange}
+                placeholder="••••••••"
                 required
+                disabled={loading}
                 minLength={6}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 6 characters
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+            {/* Confirm Password */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
               <Input
-                id="confirmPassword"
                 type="password"
+                name="confirmPassword"
                 value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
+                onChange={handleChange}
+                placeholder="••••••••"
                 required
+                disabled={loading}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create Account"}
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <p className="text-muted-foreground">
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="font-medium text-primary hover:underline"
-              >
-                Login
-              </Link>
-            </p>
+          {/* Divider */}
+          <div className="my-6 flex items-center">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <span className="px-4 text-sm text-gray-500">or</span>
+            <div className="flex-1 border-t border-gray-300"></div>
           </div>
+
+          {/* Login Link */}
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="font-semibold text-purple-600 hover:text-purple-700"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+
+        {/* Back to Home */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/"
+            className="text-sm text-gray-600 hover:text-purple-600"
+          >
+            ← Back to Home
+          </Link>
         </div>
       </div>
     </div>

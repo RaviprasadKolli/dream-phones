@@ -1,52 +1,66 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { sendWelcomeEmail } from "@/lib/email";
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { name, email, phone, password } = await req.json();
+    const body = await request.json();
+    const { name, email, password } = body;
 
-    // Check if user exists
+    // Validation
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { message: "User already exists" },
+        { error: "Email already registered" },
         { status: 400 }
       );
     }
 
     // Hash password
-    const hashedPassword = await hash(password, 10);
+    const hashedPassword = await hash(password, 12);
 
     // Create user
     const user = await prisma.user.create({
       data: {
         name,
         email,
-        phone,
         password: hashedPassword,
         role: "CUSTOMER",
       },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
     });
 
-    // Send welcome email (don't wait for it)
-    sendWelcomeEmail({
-      email: user.email,
-      name: user.name || "Customer",
-    }).catch(console.error);
-
-    return NextResponse.json(
-      { message: "User created successfully" },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      user,
+      message: "User created successfully",
+    });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json(
-      { message: "Internal server error" },
+      { error: "Failed to create user" },
       { status: 500 }
     );
   }

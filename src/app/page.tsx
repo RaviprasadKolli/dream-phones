@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Wrench, Shield, Truck } from "lucide-react";
 import { CartButton } from "@/components/layout/cart-button";
+import { UserMenu } from "@/components/layout/user-menu";
 
 export default function HomePage() {
   return (
@@ -37,12 +38,7 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4">
             <CartButton />
-            <Link href="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Get Started</Button>
-            </Link>
+            <UserMenu />
           </div>
         </div>
       </header>

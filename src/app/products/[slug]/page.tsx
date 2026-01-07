@@ -49,27 +49,50 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const addToCart = useCartStore((state) => state.addItem);
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuantity, setSelectedQuantity] = useState(1);
+  const [slug, setSlug] = useState<string>("");
 
   useEffect(() => {
-    fetchProduct();
-  }, [params.slug]); // Changed from searchParams to params.slug
+    if (params?.slug) {
+      const slugValue =
+        typeof params.slug === "string" ? params.slug : params.slug[0];
+      setSlug(slugValue);
+    }
+  }, [params]);
+
+  useEffect(() => {
+    if (slug) {
+      fetchProduct();
+    }
+  }, [slug]);
 
   const fetchProduct = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/products/${params.slug}`);
+      console.log("🔍 Fetching product with slug:", slug);
+      const response = await fetch(`/api/products/${slug}`, {
+        cache: "no-store",
+      });
+
       if (!response.ok) {
         throw new Error("Product not found");
       }
+
       const data = await response.json();
-      setProduct(data.product);
-      setRelatedProducts(data.relatedProducts);
+      const foundProduct = data.products?.find((p: any) => p.slug === slug);
+
+      if (!foundProduct) {
+        throw new Error("Product not found");
+      }
+
+      setProduct(foundProduct);
+      setRelatedProducts([]);
     } catch (error) {
-      console.error("Error fetching product:", error);
+      console.error("❌ Error fetching product:", error);
       toast({
         title: "Error",
         description: "Product not found",
@@ -92,7 +115,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!product) return;
 
-    useCartStore.getState().addItem({
+    addToCart({
       id: product.id,
       productId: product.id,
       name: product.name,
@@ -110,11 +133,8 @@ export default function ProductDetailPage() {
   };
 
   const handleBuyNow = () => {
-    toast({
-      title: "Redirecting to checkout...",
-      description: "Taking you to secure checkout",
-    });
-    // Will implement checkout later
+    handleAddToCart();
+    router.push("/cart");
   };
 
   if (loading) {
@@ -125,8 +145,12 @@ export default function ProductDetailPage() {
     );
   }
 
-  if (!product) {
-    return null;
+  if (!product && !loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-gray-600 text-lg">Product not found</p>
+      </div>
+    );
   }
 
   const discountPercentage = product.compareAtPrice

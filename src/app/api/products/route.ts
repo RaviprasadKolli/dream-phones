@@ -22,15 +22,25 @@ export async function GET(request: Request) {
     };
 
     if (category) {
-      where.category = {
-        slug: category,
-      };
+      const categories = category.split(",").filter(Boolean);
+      if (categories.length > 0) {
+        where.category = {
+          slug: {
+            in: categories,
+          },
+        };
+      }
     }
 
     if (brand) {
-      where.brand = {
-        slug: brand,
-      };
+      const brands = brand.split(",").filter(Boolean);
+      if (brands.length > 0) {
+        where.brand = {
+          slug: {
+            in: brands,
+          },
+        };
+      }
     }
 
     if (search) {
@@ -71,7 +81,7 @@ export async function GET(request: Request) {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Fetch products
+    // Fetch products and total count
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -96,9 +106,74 @@ export async function GET(request: Request) {
       prisma.product.count({ where }),
     ]);
 
+    // Get ALL categories and brands with their product counts
+    const [allCategories, allBrands] = await Promise.all([
+      prisma.category.findMany({
+        select: {
+          name: true,
+          slug: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      prisma.brand.findMany({
+        select: {
+          name: true,
+          slug: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+    ]);
+
+    // Count products for each category
+    const categoriesWithCount = await Promise.all(
+      allCategories.map(async (cat) => {
+        const count = await prisma.product.count({
+          where: {
+            categoryId: (
+              await prisma.category.findUnique({ where: { slug: cat.slug } })
+            )?.id,
+            isActive: true,
+          },
+        });
+        return {
+          name: cat.name,
+          slug: cat.slug,
+          count,
+        };
+      })
+    );
+
+    // Count products for each brand
+    const brandsWithCount = await Promise.all(
+      allBrands.map(async (brand) => {
+        const count = await prisma.product.count({
+          where: {
+            brandId: (
+              await prisma.brand.findUnique({ where: { slug: brand.slug } })
+            )?.id,
+            isActive: true,
+          },
+        });
+        return {
+          name: brand.name,
+          slug: brand.slug,
+          count,
+        };
+      })
+    );
+
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);
     const hasMore = page < totalPages;
+
+    console.log("📊 Filter data:", {
+      categories: categoriesWithCount,
+      brands: brandsWithCount,
+    });
 
     return NextResponse.json({
       products,
@@ -108,6 +183,10 @@ export async function GET(request: Request) {
         total,
         totalPages,
         hasMore,
+      },
+      filters: {
+        categories: categoriesWithCount.filter((c) => c.count > 0),
+        brands: brandsWithCount.filter((b) => b.count > 0),
       },
     });
   } catch (error) {
